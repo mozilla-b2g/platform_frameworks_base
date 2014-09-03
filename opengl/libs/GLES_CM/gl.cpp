@@ -102,8 +102,12 @@ GL_API void GL_APIENTRY glWeightPointerOESBounds(GLint size, GLenum type,
             "mrc p15, 0, " #reg ", c13, c0, 3 \n"
     #else
         #define GET_TLS(reg) \
+                       "push   {r0,r1,r2,r3,lr}                  \n"           \
             "mov   " #reg ", #0xFFFF0FFF      \n"  \
-            "ldr   " #reg ", [" #reg ", #-15] \n"
+                       "sub  " #reg "," #reg ",#0x1F     \n"           \
+                       "blx   " #reg "                                   \n"           \
+                       "mov   " #reg ", r0                       \n"           \
+                       "pop    {r0,r1,r2,r3,lr}                  \n"
     #endif
 
     #define API_ENTRY(_api) __attribute__((naked)) _api
@@ -111,8 +115,9 @@ GL_API void GL_APIENTRY glWeightPointerOESBounds(GLint size, GLenum type,
     #define CALL_GL_API(_api, ...)                              \
          asm volatile(                                          \
             GET_TLS(r12)                                        \
-            "ldr   r12, [r12, %[tls]] \n"                       \
             "cmp   r12, #0            \n"                       \
+            "ldrne   r12, [r12, %[tls]] \n"                     \
+            "cmpne   r12, #0            \n"                     \
             "ldrne pc,  [r12, %[api]] \n"                       \
             "mov   r0, #0             \n"                       \
             "bx    lr                 \n"                       \
