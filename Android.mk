@@ -194,8 +194,14 @@ LOCAL_SRC_FILES += \
 	core/java/android/nfc/IAppCallback.aidl \
 	core/java/android/nfc/INfcAdapter.aidl \
 	core/java/android/nfc/INfcAdapterExtras.aidl \
+	core/java/com/nxp/nfc/INxpNfcAdapter.aidl \
+	core/java/com/nxp/nfc/INxpNfcAdapterExtras.aidl \
+	core/java/com/nxp/nfc/INfcAccessExtras.aidl \
+	core/java/com/nxp/nfc/INfcVzw.aidl \
 	core/java/android/nfc/INfcTag.aidl \
 	core/java/android/nfc/INfcCardEmulation.aidl \
+	core/java/com/nxp/nfc/INfcAla.aidl \
+	core/java/com/nxp/nfc/INfcDta.aidl \
 	core/java/android/nfc/INfcUnlockHandler.aidl \
 	core/java/android/os/IBatteryPropertiesListener.aidl \
 	core/java/android/os/IBatteryPropertiesRegistrar.aidl \
@@ -603,6 +609,8 @@ $(gen): $(aidl_files) | $(AIDL)
 # TODO: deal with com/google/android/googleapps
 packages_to_document := \
 	android \
+	com/vzw/nfc \
+	com/nxp/nfc \
 	javax/microedition/khronos
 
 # Search through the base framework dirs for these packages.
