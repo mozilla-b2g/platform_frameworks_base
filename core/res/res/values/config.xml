@@ -1733,6 +1733,10 @@
          -->
     <string-array translatable="false" name="config_globalActionsList">
         <item>power</item>
+        <!-- [Bug]-Add-BEGIN by t2m_zhangjin,02/04/2015,PR-917818 -->
+        <item>reboot</item>
+        <item>airplane</item>
+        <!-- [Bug]-Add-END by t2m_zhangjin,02/04/2015,PR-917818 -->
         <item>bugreport</item>
         <item>users</item>
     </string-array>
