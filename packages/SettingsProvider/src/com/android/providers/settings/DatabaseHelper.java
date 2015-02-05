@@ -2351,9 +2351,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
             // Set default cdma DTMF type
             loadSetting(stmt, Settings.System.DTMF_TONE_TYPE_WHEN_DIALING, 0);
-             //add by begin by rengcang.liu for PR917745
-	    loadSetting(stmt,  Settings.System.T2M_WAP_MESSAGE_ENABLE, 1);
-           //add end by rengcang.liu for PR917745
+
             // Set default hearing aid
             loadSetting(stmt, Settings.System.HEARING_AID, 0);
 
