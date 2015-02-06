@@ -1875,6 +1875,9 @@ public final class Settings {
          *
          * @deprecated Use {@link WifiManager} instead
          */
+        //add begin by rengcang.liu for PR917745
+        public static final String T2M_WAP_MESSAGE_ENABLE = "wap_message_enable";
+        //add end by rengcang.liu for PR917745
         @Deprecated
         public static final String WIFI_STATIC_IP = "wifi_static_ip";
 

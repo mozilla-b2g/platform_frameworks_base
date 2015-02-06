@@ -25403,6 +25403,7 @@ package android.provider {
     field public static final java.lang.String SOUND_EFFECTS_ENABLED = "sound_effects_enabled";
     field public static final deprecated java.lang.String STAY_ON_WHILE_PLUGGED_IN = "stay_on_while_plugged_in";
     field public static final java.lang.String SYS_PROP_SETTING_VERSION = "sys.settings_system_version";
+    field public static final deprecated java.lang.String T2M_WAP_MESSAGE_ENABLE = "wap_message_enable";
     field public static final java.lang.String TEXT_AUTO_CAPS = "auto_caps";
     field public static final java.lang.String TEXT_AUTO_PUNCTUATE = "auto_punctuate";
     field public static final java.lang.String TEXT_AUTO_REPLACE = "auto_replace";
