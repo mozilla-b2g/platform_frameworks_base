@@ -720,6 +720,16 @@ interface ISms {
                 String scAddress, in List<PendingIntent> sentIntents,
                 in List<PendingIntent> deliveryIntents);
 
+    //[BUGFIX]-Add-BEGIN by TSNJ wei.li,10/21/2014,PR809578, porting
+    //[BUGFIX]-Add-BEGIN by TCTNB.yugang.jia,01/08/2014,PR582740
+    //[CB]After airplane mode, mobile can not receive CMAS message
+    void tct_setRangesEmpty();
+    /**
+     *get cellbroadcast config list from simcard
+     */
+    boolean getCellBroadcastConfig(long subId);
+    // [BUGFIX]-Add-END by TCTNB.Binbin.Liao
+    //[BUGFIX]-Add-END by  TSNJ wei.li
     /**
      * Get the capacity count of sms on Icc card.
      *
