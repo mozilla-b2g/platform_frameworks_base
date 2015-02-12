@@ -14266,6 +14266,8 @@ package android.media {
     field public static final int QUALITY_TIME_LAPSE_LOW = 1000; // 0x3e8
     field public static final int QUALITY_TIME_LAPSE_QCIF = 1002; // 0x3ea
     field public static final int QUALITY_TIME_LAPSE_QVGA = 1007; // 0x3ef
+    field public static final int QUALITY_VGA = 10; // 0xa
+    field public static final int QUALITY_WVGA = 9; // 0x9
     field public int audioBitRate;
     field public int audioChannels;
     field public int audioCodec;
