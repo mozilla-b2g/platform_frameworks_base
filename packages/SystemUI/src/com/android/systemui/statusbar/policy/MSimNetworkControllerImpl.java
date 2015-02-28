@@ -76,7 +76,6 @@ public class MSimNetworkControllerImpl extends NetworkControllerImpl {
     private PhoneStateListener[] mMSimPhoneStateListener;
     private String[] mCarrierTextSub;
 
-    String[] mMSimNetworkName;
     String[] mOriginalSpn;
     String[] mOriginalPlmn;
     int[] mMSimPhoneSignalIconId;
@@ -111,6 +110,19 @@ public class MSimNetworkControllerImpl extends NetworkControllerImpl {
     ArrayList<MSimSignalCluster> mSimSignalClusters = new ArrayList<MSimSignalCluster>();
     ArrayList<TextView> mSubsLabelViews = new ArrayList<TextView>();
 
+    //[FEATURE]-Add-BEGIN by qingyang.yi,02/27/2015,CR-919533
+    public static String[] mMSimNetworkName;
+    public static int[] mMSimQSPhoneSignalIconId;
+
+    //[FEATURE]-Add-BEGIN by TSNJ,huajun.tong,10/10/2014,PR-722465,
+    //[HOMO]correct icon display of data connection and Roaming in status bar
+    int[] mMSimLastmMSimRoamingIconId;
+    int[] mMSimRoamingIconId;
+    int[] mMSimLastRoamingIconId;
+    //[FEATURE]-Add-END by TSNJ,huajun.tong
+    
+    //[FEATURE]-Add-END by qingyang.yi,02/27/2015,CR-919533
+    
     public interface MSimSignalCluster {
         void setWifiIndicators(boolean visible, int strengthIcon, int activityIcon,
                 String contentDescription);
@@ -159,8 +171,11 @@ public class MSimNetworkControllerImpl extends NetworkControllerImpl {
         mShowPlmn = new boolean[numPhones];
         mSpn = new String[numPhones];
         mPlmn = new String[numPhones];
-
-
+	 //add BEGIN by qingyang.yi  for PR-919533
+        //[FEATURE]-Add by TSNJ,yu.dong,01/03/2015,CR-885362
+        mMSimQSPhoneSignalIconId = new int[numPhones];
+	//add END by qingyang.yi  for PR-919533
+	
         for (int i=0; i < numPhones; i++) {
             mMSimSignalStrength[i] = new SignalStrength();
             mMSimServiceState[i] = new ServiceState();
@@ -180,6 +195,10 @@ public class MSimNetworkControllerImpl extends NetworkControllerImpl {
             mMSimLastSimIconId[i] = 0;
             mMSimNetworkName[i] = mNetworkNameDefault;
             mMSimDataServiceState[i] = ServiceState.STATE_OUT_OF_SERVICE;
+	     //add BEGIN by qingyang.yi  for PR-919533
+            //[FEATURE]-Add by TSNJ,yu.dong,01/03/2015,CR-885362
+            mMSimQSPhoneSignalIconId[i] = 0;
+	     //add END by qingyang.yi  for PR-919533
         }
 
         mDefaultPhoneId = getDefaultPhoneId();
@@ -755,7 +774,11 @@ public class MSimNetworkControllerImpl extends NetworkControllerImpl {
                         TelephonyIcons.getSignalStrengthDes(phoneId, iconLevel);
 
                 mMSimDataSignalIconId[phoneId] = mMSimPhoneSignalIconId[phoneId];
-
+		  //add BEGIN by qingyang.yi begin for PR-919533
+                //[FEATURE]-Add by TSNJ,yu.dong,01/03/2015,CR-885362
+                mMSimQSPhoneSignalIconId[phoneId] = mQSPhoneSignalIconId = TelephonyIcons
+                            .QS_TELEPHONY_SIGNAL_STRENGTH[mInetCondition][iconLevel];
+		  //add END by qingyang.yi begin for PR-919533
                 if (phoneId == dataSub) {
                     mQSPhoneSignalIconId = TelephonyIcons
                             .QS_TELEPHONY_SIGNAL_STRENGTH[mInetCondition][iconLevel];

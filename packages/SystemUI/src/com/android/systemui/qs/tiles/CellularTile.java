@@ -32,6 +32,15 @@ import com.android.systemui.statusbar.policy.NetworkController;
 import com.android.systemui.statusbar.policy.NetworkController.DataUsageInfo;
 import com.android.systemui.statusbar.policy.NetworkController.NetworkSignalChangedCallback;
 
+//[FEATURE]-Add-BEGIN by TSNJ,yu.dong,01/03/2015,CR-885362
+import com.android.internal.telephony.PhoneConstants;
+import android.telephony.SubscriptionManager;
+import android.util.Log;
+import com.android.systemui.qs.QSPanel;
+import android.telephony.TelephonyManager;
+import com.android.systemui.statusbar.policy.MSimNetworkControllerImpl;
+
+//[FEATURE]-Add-END by TSNJ,yu.dong,01/03/2015,CR-885362
 /** Quick settings tile: Cellular **/
 public class CellularTile extends QSTile<QSTile.SignalState> {
     private static final Intent CELLULAR_SETTINGS = new Intent().setComponent(new ComponentName(
@@ -45,7 +54,24 @@ public class CellularTile extends QSTile<QSTile.SignalState> {
         mController = host.getNetworkController();
         mDetailAdapter = new CellularDetailAdapter();
     }
+	
+    //[FEATURE]-Add-BEGIN by TSNJ,yu.dong,01/03/2015,CR-885362
+    private static long mSubId;
+    public static long mPhoneId;
+    private static String mCarrier;
+    public static void setSubId(long subId) {
+        mSubId = subId;
+    }
 
+    public static void setPhoneId(long phoneId) {
+        mPhoneId = phoneId;
+    }
+
+    public static void setCarrier(String carrier) {
+        mCarrier = carrier;
+    }
+    //[FEATURE]-Add-END by TSNJ,yu.dong,01/03/2015,CR-885362
+    
     @Override
     protected SignalState newTileState() {
         return new SignalState();
@@ -72,11 +98,40 @@ public class CellularTile extends QSTile<QSTile.SignalState> {
 
     @Override
     protected void handleClick() {
-        if (mController.isMobileDataSupported()) {
-            showDetail(true);
-        } else {
-            mHost.startSettingsActivity(CELLULAR_SETTINGS);
+        //[FEATURE]-MOD-BEGIN by TSNJ,yu.dong,01/03/2015,CR-885362
+        int phoneCount = TelephonyManager.getDefault().getPhoneCount();
+        if (phoneCount == 1) {
+            if (mController.isMobileDataSupported()) {
+                showDetail(true);
+            }else {
+                mHost.startSettingsActivity(CELLULAR_SETTINGS);
+            }
+        }else if (phoneCount > 1) {
+            if (mController.isMobileDataSupportedMultiCard()) {
+                int readyCount = 0;
+                int phoneId = -1;
+                for (int i=0; i<phoneCount; i++) {
+                    if (TelephonyManager.getDefault().getSimState(i) == TelephonyManager.SIM_STATE_READY) {
+                        phoneId = i;
+                        readyCount++;
+                    }
+                }
+                if (readyCount == 2) {
+                    phoneId = 0;
+                }
+                if (phoneId != -1) {
+                    mPhoneId = phoneId;
+                    mCarrier = MSimNetworkControllerImpl.mMSimNetworkName[phoneId];
+                    long[] subIdSet1 = SubscriptionManager.getSubId(phoneId);
+                    mSubId = subIdSet1[0];
+                }
+                Log.d(TAG,"handleClick phoneId: "+phoneId+"; subId: "+mSubId);
+                showDetail(true);
+            }else {
+                mHost.startSettingsActivity(CELLULAR_SETTINGS);
+            }
         }
+        //[FEATURE]-MOD-END by TSNJ,yu.dong,01/03/2015,CR-885362
     }
 
     @Override
@@ -163,6 +218,34 @@ public class CellularTile extends QSTile<QSTile.SignalState> {
                 String dataTypeContentDescriptionId, String description, boolean noSim,
                 boolean isDataTypeIconWide) {
             final CallbackInfo info = new CallbackInfo();  // TODO pool?
+            
+            //[FEATURE]-ADD-BEGIN by TSNJ,yu.dong,01/03/2015,CR-885362
+            int phoneId = -1;
+            int phoneCount = TelephonyManager.getDefault().getPhoneCount();
+            if (phoneCount > 1) {
+                int readyCount = 0;
+                for (int i=0; i<phoneCount; i++) {
+                    if (TelephonyManager.getDefault().getSimState(i) == TelephonyManager.SIM_STATE_READY) {
+                        phoneId = i;
+                        readyCount++;
+                    }
+                }
+                if (readyCount == 2) {
+                    phoneId = 0;
+                }
+                if (readyCount >= 1) {
+                    info.mobileSignalIconId = MSimNetworkControllerImpl.mMSimQSPhoneSignalIconId[phoneId];
+                    info.enabledDesc = MSimNetworkControllerImpl.mMSimNetworkName[phoneId];
+                }else {
+                    info.mobileSignalIconId = mobileSignalIconId;
+                    info.enabledDesc = description;
+                }
+            }else if (phoneCount == 1){
+                info.mobileSignalIconId = mobileSignalIconId;
+                info.enabledDesc = description;
+            }
+            //[FEATURE]-ADD-END by TSNJ,yu.dong,01/03/2015,CR-885362
+
             info.enabled = enabled;
             info.wifiEnabled = mWifiEnabled;
             info.wifiConnected = mWifiConnected;
@@ -189,7 +272,9 @@ public class CellularTile extends QSTile<QSTile.SignalState> {
         }
     };
 
-    private final class CellularDetailAdapter implements DetailAdapter {
+//add BEGIN by qingyang.yi for PR-919533
+//[FEATURE]-MOD by TSNJ,yu.dong,01/03/2015,CR-885362  mod private to public
+    public final class CellularDetailAdapter implements DetailAdapter {
 
         @Override
         public int getTitle() {
@@ -198,7 +283,13 @@ public class CellularTile extends QSTile<QSTile.SignalState> {
 
         @Override
         public Boolean getToggleState() {
-            return mController.isMobileDataSupported() ? mController.isMobileDataEnabled() : null;
+            int phoneCount = TelephonyManager.getDefault().getPhoneCount();
+            if (phoneCount == 1) {
+                return mController.isMobileDataSupported() ? mController.isMobileDataEnabled() : null;
+            }else if (phoneCount > 1) {
+                return mController.isMobileDataSupportedMultiCard() ? mController.isMobileDataEnabledMultiCard() : null;
+            }
+            return null;
         }
 
         @Override
@@ -208,7 +299,14 @@ public class CellularTile extends QSTile<QSTile.SignalState> {
 
         @Override
         public void setToggleState(boolean state) {
-            mController.setMobileDataEnabled(state);
+            //[FEATURE]-ADD-BEGIN by TSNJ,yu.dong,01/03/2015,CR-885362
+            int phoneCount = TelephonyManager.getDefault().getPhoneCount();
+            if (phoneCount == 1) {
+                mController.setMobileDataEnabled(state);
+            }else if (phoneCount > 1) {
+                mController.setMobileDataEnabledSubId(mSubId,state);
+            }
+            //[FEATURE]-ADD-END by TSNJ,yu.dong,01/03/2015,CR-885362
         }
 
         @Override
@@ -216,12 +314,26 @@ public class CellularTile extends QSTile<QSTile.SignalState> {
             final DataUsageDetailView v = (DataUsageDetailView) (convertView != null
                     ? convertView
                     : LayoutInflater.from(mContext).inflate(R.layout.data_usage, parent, false));
-            final DataUsageInfo info = mController.getDataUsageInfo();
+            int phoneCount = TelephonyManager.getDefault().getPhoneCount();
+            //[FEATURE]-MOD-BEGIN by TSNJ,yu.dong,01/03/2015,CR-885362
+            DataUsageInfo info = null;
+            if (phoneCount == 1) {
+                info = mController.getDataUsageInfo();
+            }else if (phoneCount > 1) {
+                info = mController.getDataUsageInfo(mSubId);
+            }
+            //[FEATURE]-MOD-END by TSNJ,yu.dong,01/03/2015,CR-885362
+
             if (info == null) return v;
+            //[FEATURE]-ADD-BEGIN by TSNJ,yu.dong,01/03/2015,CR-885362
+            if (phoneCount > 1) {
+                info.carrier = mCarrier;
+            }
+            //[FEATURE]-ADD-END by TSNJ,yu.dong,01/03/2015,CR-885362
             v.bind(info);
             return v;
         }
-
+//add END by qingyang.yi for PR-919533
         public void setMobileDataEnabled(boolean enabled) {
             fireToggleStateChanged(enabled);
         }
