@@ -425,6 +425,36 @@ public class NetworkControllerImpl extends BroadcastReceiver
         return info;
     }
 
+//ADD BEGIN BY QINGYAN.YI FOR PR-919533
+    //[FEATURE]-Add-BEGIN by TSNJ,yu.dong,01/03/2015,CR-885362
+    @Override
+    public DataUsageInfo getDataUsageInfo(long subId) {
+        final DataUsageInfo info =  mMobileDataController.getDataUsageInfo(subId);
+        if (info != null) {
+            info.carrier = mNetworkName;
+        }
+        return info;
+    }
+
+    @Override
+    public boolean isMobileDataSupportedMultiCard() {
+        return mMobileDataController.isMobileDataSupportedMultiCard();
+    }
+
+    @Override
+    public boolean isMobileDataEnabledMultiCard() {
+        return mMobileDataController.isMobileDataEnabledMultiCard();
+    }
+    //[FEATURE]-Add-END by TSNJ,yu.dong,01/03/2015,CR-885362
+
+
+    //[FEATURE]-Add-BEGIN by TSNJ,yu.dong,01/03/2015,CR-885362
+    @Override
+    public void setMobileDataEnabledSubId(long subId,boolean enabled) {
+        mMobileDataController.setMobileDataEnabledSubId(subId,enabled);
+    }
+    //[FEATURE]-Add-END by TSNJ,yu.dong,01/03/2015,CR-885362
+    //ADD END BY QINGYANG.YI FOR PR-919533
     @Override
     public boolean isMobileDataSupported() {
         return mMobileDataController.isMobileDataSupported();

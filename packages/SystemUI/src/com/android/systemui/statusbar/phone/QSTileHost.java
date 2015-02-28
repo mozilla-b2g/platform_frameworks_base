@@ -144,7 +144,14 @@ public class QSTileHost implements QSTile.Host {
         mUserTracker.startTracking();
         mObserver.register();
     }
-
+    //ADD BEGIN BY QINGYANG.YI FPR PR-919533
+    //[FEATURE]-Add-BEGIN by TSNJ,yu.dong,01/03/2015,CR-885362
+    public LinkedHashMap<String, QSTile<?>> getTileSet() {
+        return mTiles;
+    }
+    //[FEATURE]-Add-END by TSNJ,yu.dong,01/03/2015,CR-885362
+    //ADD END BY QINGYANG.YI FPR PR-919533
+    
     @Override
     public void setCallback(Callback callback) {
         mCallback = callback;

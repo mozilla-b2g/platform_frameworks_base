@@ -45,13 +45,26 @@ import com.android.systemui.statusbar.policy.BrightnessMirrorController;
 import java.util.ArrayList;
 import java.util.Collection;
 
+//ADD BEGIN BY QINGYANG.YI FOR PR-919533
+//[FEATURE]-Add-BEGIN by TSNJ,yu.dong,01/03/2015,CR-885362
+import com.android.internal.telephony.PhoneConstants;
+import android.telephony.SubscriptionManager;
+import com.android.systemui.qs.tiles.CellularTile;
+import android.util.Log;
+import com.android.systemui.statusbar.policy.MSimNetworkControllerImpl;
+import com.android.systemui.qs.tiles.CellularTile.CellularDetailAdapter;
+import android.telephony.TelephonyManager;
+import com.android.systemui.statusbar.phone.StatusBarHeaderView;
+import android.graphics.Color;
+//[FEATURE]-Add-END by TSNJ,yu.dong,01/03/2015,CR-885362
 /** View that represents the quick settings tile panel. **/
+//ADD END BY QINGYANG.YI FOR PR-919533
 public class QSPanel extends ViewGroup {
     private static final float TILE_ASPECT = 1.2f;
 
     private final Context mContext;
     private final ArrayList<TileRecord> mRecords = new ArrayList<TileRecord>();
-    private final View mDetail;
+    private View mDetail = null;
     private final ViewGroup mDetailContent;
     private final TextView mDetailSettingsButton;
     private final TextView mDetailDoneButton;
@@ -77,7 +90,13 @@ public class QSPanel extends ViewGroup {
 
     private QSFooter mFooter;
     private boolean mGridContentVisible = true;
-
+    //ADD BEGIN BY QINGYANG.YI FOR PR-919533
+    //[FEATURE]-Add-BEGIN by TSNJ,yu.dong,01/03/2015,CR-885362
+    public static TextView mCardOneButton;
+    public static TextView mCardTwoButton;
+    int mPhoneCount;
+    //[FEATURE]-Add-END by TSNJ,yu.dong,01/03/2015,CR-885362
+    //ADD END BY QINGYANG.YI FOR PR-919533
     public QSPanel(Context context) {
         this(context, null);
     }
@@ -85,11 +104,23 @@ public class QSPanel extends ViewGroup {
     public QSPanel(Context context, AttributeSet attrs) {
         super(context, attrs);
         mContext = context;
+        mPhoneCount = TelephonyManager.getDefault().getPhoneCount();
 
+        if (mPhoneCount == 1) {
         mDetail = LayoutInflater.from(context).inflate(R.layout.qs_detail, this, false);
+        }else if (mPhoneCount == 2) {
+            mDetail = LayoutInflater.from(context).inflate(R.layout.qs_detail_multicard, this, false);
+        }
         mDetailContent = (ViewGroup) mDetail.findViewById(android.R.id.content);
         mDetailSettingsButton = (TextView) mDetail.findViewById(android.R.id.button2);
         mDetailDoneButton = (TextView) mDetail.findViewById(android.R.id.button1);
+	 //ADD BEGIN BY QINGYANG.YI FOR PR-919533
+        if (mPhoneCount == 2) {
+        mCardOneButton = (TextView) mDetail.findViewById(R.id.cardOneButton);
+        mCardTwoButton = (TextView) mDetail.findViewById(R.id.cardTwoButton);
+        }
+        //[FEATURE]-Add-END by TSNJ,yu.dong,01/03/2015,CR-885362
+         //ADD END BY QINGYANG.YI FOR PR-919533
         updateDetailText();
         mDetail.setVisibility(GONE);
         mDetail.setClickable(true);
@@ -112,11 +143,83 @@ public class QSPanel extends ViewGroup {
                 closeDetail();
             }
         });
+        //ADD BEGIN BY QINGYANG.YI FOR PR-919533
+        //[FEATURE]-Add-BEGIN by TSNJ,yu.dong,01/03/2015,CR-885362
+        if (mPhoneCount == 2) {
+        mCardOneButton.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                int phoneId = PhoneConstants.SUB1;
+                long[] subIdSet = SubscriptionManager.getSubId(phoneId);
+                long subId = subIdSet[0];
+
+                QSTile<?> tile = mHost.getTileSet().get("cell");
+
+                CellularTile.setCarrier(MSimNetworkControllerImpl.mMSimNetworkName[0]);
+                CellularTile.setSubId(subId);
+                CellularTile.setPhoneId(phoneId);
+
+                View detailView = null;
+                detailView = tile.getDetailAdapter().createDetailView(mContext,detailView,mDetailContent);
+
+                mDetailContent.removeAllViews();
+                mDetail.bringToFront();
+                mDetailContent.addView(detailView);
+
+                StatusBarHeaderView.setSwitchToggle(phoneId);
+
+                getCardShowButton(1).setTextColor(Color.parseColor("#FFFFFFFF"));
+                getCardShowButton(2).setTextColor(Color.parseColor("#FF808080"));
+            }
+        });
+
+        mCardTwoButton.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                int phoneId = PhoneConstants.SUB2;
+                long[] subIdSet = SubscriptionManager.getSubId(phoneId);
+                long subId = subIdSet[0];
+
+                QSTile<?> tile = mHost.getTileSet().get("cell");
+                CellularTile.setCarrier(MSimNetworkControllerImpl.mMSimNetworkName[1]);
+                CellularTile.setSubId(subId);
+                CellularTile.setPhoneId(phoneId);
+
+                View detailView = null;
+                detailView = tile.getDetailAdapter().createDetailView(mContext,detailView,mDetailContent);
+
+                mDetailContent.removeAllViews();
+                mDetail.bringToFront();
+                mDetailContent.addView(detailView);
+
+                StatusBarHeaderView.setSwitchToggle(phoneId);
+                getCardShowButton(2).setTextColor(Color.parseColor("#FFFFFFFF"));
+                getCardShowButton(1).setTextColor(Color.parseColor("#FF808080"));
+            }
+        });
+        }
+        //[FEATURE]-Add-END by TSNJ,yu.dong,01/03/2015,CR-885362
     }
+
+
+    //[FEATURE]-Add-BEGIN by TSNJ,yu.dong,01/03/2015,CR-885362
+    public static TextView getCardShowButton(int id) {
+        if (id == 1) return mCardOneButton;
+        if (id == 2) return mCardTwoButton;
+        return null;
+    }
+    //[FEATURE]-Add-END by TSNJ,yu.dong,01/03/2015,CR-885362
+   //ADD END BY QINGYANG.YI FOR PR-919533
 
     private void updateDetailText() {
         mDetailDoneButton.setText(R.string.quick_settings_done);
         mDetailSettingsButton.setText(R.string.quick_settings_more_settings);
+        //[FEATURE]-Add-BEGIN by TSNJ,yu.dong,01/03/2015,CR-885362
+        if (mPhoneCount == 2) {
+            mCardOneButton.setText(R.string.simCard1_operator);
+            mCardTwoButton.setText(R.string.simCard2_operator);
+        }
+        //[FEATURE]-Add-END by TSNJ,yu.dong,01/03/2015,CR-885362
     }
 
     public void setBrightnessMirror(BrightnessMirrorController c) {
@@ -341,7 +444,52 @@ public class QSPanel extends ViewGroup {
             detailAdapter = r.detailAdapter;
             r.detailView = detailAdapter.createDetailView(mContext, r.detailView, mDetailContent);
             if (r.detailView == null) throw new IllegalStateException("Must return detail view");
-
+		 //ADD BEGIN BY QINGYANG.YI FOR PR-919533
+            //[FEATURE]-Add-BEGIN by TSNJ,yu.dong,01/03/2015,CR-885362
+            if (r.detailAdapter instanceof CellularDetailAdapter) {
+                if (mPhoneCount == 2) {
+                    int readyCount = 0;
+                    int readyIndex = -1;
+                    for (int i=0; i<mPhoneCount; i++) {
+                        if (TelephonyManager.getDefault().getSimState(i) == TelephonyManager.SIM_STATE_READY) {
+                            readyIndex = i;
+                            readyCount++;
+                        }
+                    }
+                    getCardShowButton(1).setVisibility(View.VISIBLE);
+                    getCardShowButton(2).setVisibility(View.VISIBLE);
+                    if (readyCount == 2) {
+                        if (CellularTile.mPhoneId == PhoneConstants.PHONE_ID1) {
+                            getCardShowButton(1).setTextColor(Color.parseColor("#FFFFFFFF"));
+                            getCardShowButton(2).setTextColor(Color.parseColor("#FF808080"));
+                        }else {
+                            getCardShowButton(2).setTextColor(Color.parseColor("#FFFFFFFF"));
+                            getCardShowButton(1).setTextColor(Color.parseColor("#FF808080"));
+                        }
+                        getCardShowButton(1).setEnabled(true);
+                        getCardShowButton(2).setEnabled(true);
+                    }else if (readyCount == 1){
+                        if (readyIndex == 0) {
+                            getCardShowButton(1).setEnabled(true);
+                            getCardShowButton(2).setEnabled(false);
+                            getCardShowButton(1).setTextColor(Color.parseColor("#FFFFFFFF"));
+                            getCardShowButton(2).setTextColor(Color.parseColor("#FF808080"));
+                        }else {
+                            getCardShowButton(2).setEnabled(true);
+                            getCardShowButton(1).setEnabled(false);
+                            getCardShowButton(2).setTextColor(Color.parseColor("#FFFFFFFF"));
+                            getCardShowButton(1).setTextColor(Color.parseColor("#FF808080"));
+                        }
+                    }
+                }
+            }else {
+                if (mPhoneCount == 2) {
+                QSPanel.getCardShowButton(1).setVisibility(View.INVISIBLE);
+                QSPanel.getCardShowButton(2).setVisibility(View.INVISIBLE);
+                }
+            }
+            //[FEATURE]-Add-END by TSNJ,yu.dong,01/03/2015,CR-885362
+	     //ADD END BY QINGYANG.YI FOR PR-919533
             final Intent settingsIntent = detailAdapter.getSettingsIntent();
             mDetailSettingsButton.setVisibility(settingsIntent != null ? VISIBLE : GONE);
             mDetailSettingsButton.setOnClickListener(new OnClickListener() {
@@ -364,6 +512,18 @@ public class QSPanel extends ViewGroup {
         sendAccessibilityEvent(AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED);
         fireShowingDetail(show ? detailAdapter : null);
         mClipper.animateCircularClip(x, y, show, listener);
+      //[BUGFIX]-Add-BEGIN by TCTNB.YuTao.Yang,01/14/2015,PR-840280,
+      //The signal icon is missing in setting panel for once
+        if (show) {
+            //Log.i(TAG,"show detail");
+        } else {
+             //[BUGFIX]-Add-BEGIN by TSNJ.(Junyong.Sun),01/20/2015,PR-906596
+            if (mListening) {
+                refreshAllTiles();
+            }
+           //[BUGFIX]-Add-END by TSNJ.(Junyong.Sun)
+        }
+      //[BUGFIX]-Add-END by TCTNB.YuTao.Yang
     }
 
     private void setGridContentVisibility(boolean visible) {

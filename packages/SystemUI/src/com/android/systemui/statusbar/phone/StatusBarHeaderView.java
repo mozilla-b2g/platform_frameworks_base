@@ -38,7 +38,7 @@ import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.Switch;
 import android.widget.TextView;
-
+import android.util.Log;
 import com.android.keyguard.KeyguardStatusView;
 import com.android.systemui.BatteryMeterView;
 import com.android.systemui.FontSizeUtils;
@@ -49,6 +49,14 @@ import com.android.systemui.statusbar.policy.BatteryController;
 import com.android.systemui.statusbar.policy.NextAlarmController;
 import com.android.systemui.statusbar.policy.UserInfoController;
 
+//ADD BY QINGYANG.YI FOR PR-919533
+//[FEATURE]-Add-BEGIN by TSNJ,yu.dong,01/03/2015,CR-885362
+import android.util.Log;
+import com.android.systemui.qs.tiles.CellularTile;
+import com.android.internal.telephony.PhoneConstants;
+import com.android.systemui.qs.tiles.CellularTile.CellularDetailAdapter;
+//[FEATURE]-Add-END by TSNJ,yu.dong,01/03/2015,CR-885362
+//ADD BY END.YI FOR PR-919533
 /**
  * The view to manage the header area in the expanded status bar.
  */
@@ -73,8 +81,6 @@ public class StatusBarHeaderView extends RelativeLayout implements View.OnClickL
     private View mSettingsButton;
     private View mTaskManagerButton;
     private View mQsDetailHeader;
-    private TextView mQsDetailHeaderTitle;
-    private Switch mQsDetailHeaderSwitch;
     private ImageView mQsDetailHeaderProgress;
     private TextView mEmergencyCallsOnly;
     private TextView mBatteryLevel;
@@ -83,7 +89,12 @@ public class StatusBarHeaderView extends RelativeLayout implements View.OnClickL
     private boolean mShowEmergencyCallsOnly;
     private boolean mAlarmShowing;
     private AlarmManager.AlarmClockInfo mNextAlarm;
-
+    //[FEATURE]-MOD-BEGIN by TSNJ,yu.dong,01/03/2015,CR-885362
+    private static TextView mQsDetailHeaderTitle;
+    private static Switch mQsDetailHeaderSwitch;
+    private static Context mContext;
+    private int mPhoneCount;
+    //[FEATURE]-MOD-END by TSNJ,yu.dong,01/03/2015,CR-885362
     private int mCollapsedHeight;
     private int mExpandedHeight;
 
@@ -124,6 +135,9 @@ public class StatusBarHeaderView extends RelativeLayout implements View.OnClickL
 
     public StatusBarHeaderView(Context context, AttributeSet attrs) {
         super(context, attrs);
+        //[FEATURE]-Add by QINGYANG.YI FOR PR-919533
+        mContext = context;
+	 mPhoneCount = TelephonyManager.getDefault().getPhoneCount();
     }
 
     @Override
@@ -183,6 +197,24 @@ public class StatusBarHeaderView extends RelativeLayout implements View.OnClickL
         requestCaptureValues();
     }
 
+    //[FEATURE]-Add-BEGIN by TSNJ,yu.dong,01/03/2015,CR-885362
+    public static void setSwitchToggle(long phoneId) {
+        int sEnable = android.provider.Settings.Global.getInt(mContext.getContentResolver(),
+                        android.provider.Settings.Global.MOBILE_DATA + phoneId, 0);
+        if (sEnable == 0) {
+             mQsDetailHeaderSwitch.setChecked(false);
+        }else {
+             mQsDetailHeaderSwitch.setChecked(true);
+        }
+
+        if (CellularTile.mPhoneId == PhoneConstants.PHONE_ID1) {
+            mQsDetailHeaderTitle.setText(mContext.getString(R.string.simCard1_data));
+        }else {
+            mQsDetailHeaderTitle.setText(mContext.getString(R.string.simCard2_data));
+        }
+    }
+    //[FEATURE]-Add-END by TSNJ,yu.dong,01/03/2015,CR-885362
+    
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
         super.onLayout(changed, l, t, r, b);
@@ -776,19 +808,56 @@ public class StatusBarHeaderView extends RelativeLayout implements View.OnClickL
             transition(mQsDetailHeader, showingDetail);
             mShowingDetail = showingDetail;
             if (showingDetail) {
-                mQsDetailHeaderTitle.setText(detail.getTitle());
+                if (detail instanceof CellularDetailAdapter) {
+                    if (mPhoneCount == 1) {
+                        mQsDetailHeaderTitle.setText(detail.getTitle());
+                    }else if (mPhoneCount == 2) {
+                		if (CellularTile.mPhoneId == PhoneConstants.PHONE_ID1) {
+                        	mQsDetailHeaderTitle.setText(getContext().getString(R.string.simCard1_data));
+                    	}else {
+                        	mQsDetailHeaderTitle.setText(getContext().getString(R.string.simCard2_data));
+                        }
+                    }
+                }else {
+                    mQsDetailHeaderTitle.setText(detail.getTitle());
+                }
+
                 final Boolean toggleState = detail.getToggleState();
+                final int sEnableShow = android.provider.Settings.Global.getInt(getContext().getContentResolver(),
+                            android.provider.Settings.Global.MOBILE_DATA + CellularTile.mPhoneId, 0);
+
                 if (toggleState == null) {
                     mQsDetailHeaderSwitch.setVisibility(INVISIBLE);
                     mQsDetailHeader.setClickable(false);
                 } else {
                     mQsDetailHeaderSwitch.setVisibility(VISIBLE);
-                    mQsDetailHeaderSwitch.setChecked(toggleState);
+                    if (mPhoneCount == 1) {
+                        mQsDetailHeaderSwitch.setChecked(toggleState);
+                    }else if (mPhoneCount == 2) {
+                    	if (sEnableShow == 0) {
+                        	mQsDetailHeaderSwitch.setChecked(false);
+                    	}else {
+                    	    mQsDetailHeaderSwitch.setChecked(true);
+                        }
+                    }
+                    //[FEATURE]-Add-END by TSNJ,yu.dong,01/03/2015,CR-885362
                     mQsDetailHeader.setClickable(true);
                     mQsDetailHeader.setOnClickListener(new OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            detail.setToggleState(!mQsDetailHeaderSwitch.isChecked());
+                            //[FEATURE]-ADD-BEGIN by TSNJ,yu.dong,01/03/2015,CR-885362
+                            final int sEnableClick = android.provider.Settings.Global.getInt(getContext().getContentResolver(),
+                                    android.provider.Settings.Global.MOBILE_DATA + CellularTile.mPhoneId, 0);
+                            if (mPhoneCount == 1) {
+                                detail.setToggleState(!mQsDetailHeaderSwitch.isChecked());
+                            }else if (mPhoneCount == 2) {
+                            	if (sEnableClick == 0) {
+                               		detail.setToggleState(true);
+                            	}else {
+                                	detail.setToggleState(false);
+                                }
+                            }
+                            //[FEATURE]-ADD-END by TSNJ,yu.dong,01/03/2015,CR-885362
                         }
                     });
                 }

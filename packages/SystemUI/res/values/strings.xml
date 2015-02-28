@@ -935,4 +935,13 @@
 
     <!-- Accessibility string for current zen mode and selected exit condition. A template that simply concatenates existing mode string and the current condition description. [CHAR LIMIT=20] -->
     <string name="zen_mode_and_condition"><xliff:g id="zen_mode" example="Priority interruptions only">%1$s</xliff:g>. <xliff:g id="exit_condition" example="For one hour">%2$s</xliff:g></string>
+
+    <!-- add begin by qingyang.yi for PR-919533 -->
+    <!-- [FERTURE]-Add-BEGIN by Yu.Dong,2015/01/03 CR885362 -->
+    <string name="simCard1_operator">SIM 1 OPERATOR</string>
+    <string name="simCard2_operator">SIM 2 OPERATOR</string>
+    <string name="simCard1_data">SIM 1 Cellular data</string>
+    <string name="simCard2_data">SIM 2 Cellular data</string>
+    <!-- [FERTURE]-Add-END by Yu.Dong,2015/01/03 CR885362 -->
+    <!-- add END by qingyang.yi for PR-919533 -->
 </resources>

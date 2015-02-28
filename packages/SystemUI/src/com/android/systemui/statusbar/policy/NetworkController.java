@@ -44,7 +44,15 @@ public interface NetworkController {
     boolean isMobileDataEnabled();
     void setMobileDataEnabled(boolean enabled);
     DataUsageInfo getDataUsageInfo();
-
+    //ADD BEGIN BY QINGYAN.YI FOR PR-919533
+    //[FEATURE]-Add-BEGIN by TSNJ,yu.dong,01/03/2015,CR-885362
+    void setMobileDataEnabledSubId(long subId,boolean enabled);
+    DataUsageInfo getDataUsageInfo(long subId);
+    boolean isMobileDataSupportedMultiCard();
+    boolean isMobileDataEnabledMultiCard();
+    //[FEATURE]-Add-END by TSNJ,yu.dong,01/03/2015,CR-885362
+    //ADD END BY QINGYAN.YI FOR PR-919533
+    
     public interface AccessPointCallback {
         void onAccessPointsChanged(AccessPoint[] accessPoints);
     }

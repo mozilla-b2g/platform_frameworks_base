@@ -42,7 +42,13 @@ import com.android.systemui.statusbar.policy.NetworkController.DataUsageInfo;
 
 import java.util.Date;
 import java.util.Locale;
-
+//Add BEGIN by qingyang.yi for PR-919533
+//[FEATURE]-Add-BEGIN by TSNJ,yu.dong,01/03/2015,CR-885362
+import android.telephony.SubscriptionManager;
+import com.android.internal.telephony.PhoneConstants;
+import com.android.systemui.qs.tiles.CellularTile;
+//[FEATURE]-Add-END by TSNJ,yu.dong,01/03/2015,CR-885362
+////Add END by qingyang.yi for PR-919533
 public class MobileDataController {
     private static final String TAG = "MobileDataController";
     private static final boolean DEBUG = Log.isLoggable(TAG, Log.DEBUG);
@@ -160,7 +166,71 @@ public class MobileDataController {
             return warn("remote call failed");
         }
     }
+    //Add BEGIN by qingyang.yi for PR-919533
+    //[FEATURE]-Add-BEGIN by TSNJ,yu.dong,01/03/2015,CR-885362
+    public DataUsageInfo getDataUsageInfo(long subId) {
+        final String subscriberId = getSubscriberId(mContext,subId);
 
+        if (subscriberId == null) {
+            return warn("no subscriber id");
+        }
+        final INetworkStatsSession session = getSession();
+        if (session == null) {
+            return warn("no stats session");
+        }
+        final NetworkTemplate template = NetworkTemplate.buildTemplateMobileAll(subscriberId);
+        final NetworkPolicy policy = findNetworkPolicy(template);
+        try {
+            final NetworkStatsHistory history = mSession.getHistoryForNetwork(template, FIELDS);
+            final long now = System.currentTimeMillis();
+            final long start, end;
+            if (policy != null && policy.cycleDay > 0) {
+                // period = determined from cycleDay
+                if (DEBUG) Log.d(TAG, "Cycle day=" + policy.cycleDay + " tz="
+                        + policy.cycleTimezone);
+                final Time nowTime = new Time(policy.cycleTimezone);
+                nowTime.setToNow();
+                final Time policyTime = new Time(nowTime);
+                policyTime.set(policy.cycleDay, policyTime.month, policyTime.year);
+                policyTime.normalize(false);
+                if (nowTime.after(policyTime)) {
+                    start = policyTime.toMillis(false);
+                    end = addMonth(policyTime, 1).toMillis(false);
+                } else {
+                    start = addMonth(policyTime, -1).toMillis(false);
+                    end = policyTime.toMillis(false);
+                }
+            } else {
+                // period = last 4 wks
+                end = now;
+                start = now - DateUtils.WEEK_IN_MILLIS * 4;
+            }
+            final long callStart = System.currentTimeMillis();
+            final NetworkStatsHistory.Entry entry = history.getValues(start, end, now, null);
+            final long callEnd = System.currentTimeMillis();
+            if (DEBUG) Log.d(TAG, String.format("history call from %s to %s now=%s took %sms: %s",
+                    new Date(start), new Date(end), new Date(now), callEnd - callStart,
+                    historyEntryToString(entry)));
+            if (entry == null) {
+                return warn("no entry data");
+            }
+            final long totalBytes = entry.rxBytes + entry.txBytes;
+            final DataUsageInfo usage = new DataUsageInfo();
+            usage.usageLevel = totalBytes;
+            usage.period = formatDateRange(start, end);
+            if (policy != null) {
+                usage.limitLevel = policy.limitBytes > 0 ? policy.limitBytes : 0;
+                usage.warningLevel = policy.warningBytes > 0 ? policy.warningBytes : 0;
+            } else {
+                usage.warningLevel = DEFAULT_WARNING_LEVEL;
+            }
+            return usage;
+        } catch (RemoteException e) {
+            return warn("remote call failed");
+        }
+    }
+    //[FEATURE]-Add-END by TSNJ,yu.dong,01/03/2015,CR-885362
+    //Add END by qingyang.yi for PR-919533
     private NetworkPolicy findNetworkPolicy(NetworkTemplate template) {
         if (mPolicyManager == null || template == null) return null;
         final NetworkPolicy[] policies = mPolicyManager.getNetworkPolicies();
@@ -194,7 +264,93 @@ public class MobileDataController {
             mCallback.onMobileDataEnabled(enabled);
         }
     }
+//ADD BY QINGYANG.YI FOR PR-919533
+    //[FEATURE]-Add-BEGIN by TSNJ,yu.dong,01/03/2015,CR-885362
+    public void setMobileDataEnabledSubId(long subId,boolean enabled) {
+        Log.i(TAG,"mobileDataController setMobileDataEnabledSubId subId: "+subId+"; enabled: "+enabled);
+        if (enabled == true) {
+            SubscriptionManager.setDefaultDataSubId(subId);
+        }
 
+        int phoneId1 = PhoneConstants.SUB1;
+        int phoneId2 = PhoneConstants.SUB2;
+        long[] subIdSet1 = SubscriptionManager.getSubId(phoneId1);
+        if (enabled == true) {
+            if (subIdSet1[0] == subId) {
+                android.provider.Settings.Global.putInt(mContext.getContentResolver(),
+                android.provider.Settings.Global.MOBILE_DATA + phoneId1, 1);
+
+                android.provider.Settings.Global.putInt(mContext.getContentResolver(),
+                android.provider.Settings.Global.MOBILE_DATA + phoneId2, 0);
+            }else {
+                android.provider.Settings.Global.putInt(mContext.getContentResolver(),
+                android.provider.Settings.Global.MOBILE_DATA + phoneId1, 0);
+
+                android.provider.Settings.Global.putInt(mContext.getContentResolver(),
+                android.provider.Settings.Global.MOBILE_DATA + phoneId2, 1);
+            }
+        }else {
+            if (subIdSet1[0] == subId) {
+                android.provider.Settings.Global.putInt(mContext.getContentResolver(),
+                            android.provider.Settings.Global.MOBILE_DATA + phoneId1, 0);
+            }else {
+                android.provider.Settings.Global.putInt(mContext.getContentResolver(),
+                            android.provider.Settings.Global.MOBILE_DATA + phoneId2, 0);
+
+            }
+        }
+
+        mTelephonyManager.setDataEnabledUsingSubId(subId,enabled);
+        if (mCallback != null) {
+            mCallback.onMobileDataEnabled(enabled);
+        }
+    }
+    //[FEATURE]-Add-END by TSNJ,yu.dong,01/03/2015,CR-885362
+
+    //[FEATURE]-Add-BEGIN by TSNJ,yu.dong,01/03/2015,CR-885362
+    public boolean isMobileDataSupportedMultiCard() {
+        boolean res = false;
+
+        if (mConnectivityManager.isNetworkSupported(TYPE_MOBILE) == false) {
+            res = false;
+        }else {
+            int phoneCount = TelephonyManager.getDefault().getPhoneCount();
+            if (phoneCount == 1) {
+                if (TelephonyManager.getDefault().getSimState() == TelephonyManager.SIM_STATE_READY) {
+                    res = true;
+                }else {
+                    res = false;
+                }
+            }else if (phoneCount > 1) {
+                int readyCount = 0;
+                for (int i=0; i<phoneCount; i++) {
+                    if (TelephonyManager.getDefault().getSimState(i) == TelephonyManager.SIM_STATE_READY) {
+                        readyCount++;
+                    }
+                }
+
+                if (readyCount == 0) {
+                    res = false;
+                }else {
+                    res = true;
+                }
+            }
+        }
+        Log.i(TAG,"isMobileDataSupported res: "+res);
+        return res;
+    }
+    //[FEATURE]-Add-END by TSNJ,yu.dong,01/03/2015,CR-885362
+//ADD END BY QINGYANG.YI FOR PR-919533
+
+    public boolean isMobileDataEnabledMultiCard() {
+        int s1Enable = android.provider.Settings.Global.getInt(mContext.getContentResolver(),
+                            android.provider.Settings.Global.MOBILE_DATA + CellularTile.mPhoneId, 0);
+        if (s1Enable == 0) {
+            return false;
+        }else {
+            return true;
+        }
+    }
     public boolean isMobileDataSupported() {
         // require both supported network and ready SIM
         return mConnectivityManager.isNetworkSupported(TYPE_MOBILE)
@@ -210,7 +366,15 @@ public class MobileDataController {
         final String actualSubscriberId = tele.getSubscriberId();
         return actualSubscriberId;
     }
-
+//ADD BEGIN BY QINGYANG.YI FOR PR-919533
+    //[FEATURE]-Add-BEGIN by TSNJ,yu.dong,01/03/2015,CR-885362
+    private static String getSubscriberId(Context context,long subId) {
+        final TelephonyManager tele = TelephonyManager.from(context);
+        final String subscriberId = tele.getSubscriberId(subId);
+        return subscriberId;
+    }
+    //[FEATURE]-Add-END by TSNJ,yu.dong,01/03/2015,CR-885362
+////ADD END BY QINGYANG.YI FOR PR-919533
     private String formatDateRange(long start, long end) {
         final int flags = FORMAT_SHOW_DATE | FORMAT_ABBREV_MONTH;
         synchronized (PERIOD_BUILDER) {
